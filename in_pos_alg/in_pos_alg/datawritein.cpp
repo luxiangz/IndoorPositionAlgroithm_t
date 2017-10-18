@@ -9,7 +9,9 @@ datareadinfo::datareadinfo(int nrnum,int rownum,int column)
 #endif
 	measuredata = new float[nrnum];
 	//cout << "measuredata:\t" << measuredata << endl;
-	basestation_coor = new float[nrnum * 3];
+	basestation_coor = new float*[nrnum];
+	for (int i = 0; i < nrnum; i++)
+		basestation_coor[i] = new float[3];
 	//cout << "basestation_coor:\t" << basestation_coor << endl;
 	planes = new float *[column];
 	for (int i = 0; i < column; i++)
@@ -20,6 +22,11 @@ datareadinfo::datareadinfo(int nrnum,int rownum,int column)
 datareadinfo::~datareadinfo()
 {
 	delete[] measuredata;
+	//delete[] basestation_coor;
+
+	int col0 = (sizeof(basestation_coor) / sizeof(float)) / (sizeof(basestation_coor[0]) / sizeof(float));
+	for (int j = 0; j < col0; j++)
+		delete[] basestation_coor[j];
 	delete[] basestation_coor;
 
 	int col = (sizeof(planes) / sizeof(float)) / (sizeof(planes[0]) / sizeof(float));
@@ -34,13 +41,13 @@ void datareadinfo::Set_Measure_Data(float *measuredatatemp)
 	cout << *measuredata << endl;
 #endif
 }
-void datareadinfo::Set_Basestation_Coor(float *basestation_coor_temp)
-{
-	basestation_coor = basestation_coor_temp;
-#ifdef debug
-	cout << *basestation_coor << endl;
-#endif // debug
-}
+//void datareadinfo::Set_Basestation_Coor(float *basestation_coor_temp)
+//{
+//	basestation_coor = basestation_coor_temp;
+//#ifdef debug
+//	cout << *basestation_coor << endl;
+//#endif // debug
+//}
 void datareadinfo::Read_1dTo2d(float *temp1d, int temph, int templ, float &taget,int maxcolumn)
 {
 	taget = temp1d[temph*maxcolumn + templ];

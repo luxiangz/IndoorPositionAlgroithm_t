@@ -5,10 +5,12 @@
 #include <iomanip>
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 #include "stdlib.h"
 #include "file_operation.h"
 #include "datawritein.h"
+#include "total_reflection.h"
 using namespace std;
 struct potcollection
 {
@@ -69,12 +71,14 @@ void Perfect_planes(int maxmatrixl, int maxmatrixh, float **planes);
 int Write_Into_Txt(char* filename, bool writeflag);
 float maxmax(float temp1, float temp2, float temp3, float temp4);
 float minmin(float temp1, float temp2, float temp3, float temp4);
+void findborder(int maxmatrixl, float **planes, int *line, float & min3, float & max3);
+void Set_vect(float * vect, int nb, float min4, float max4);
 int main()
 {
 	//char *a=NULL;
 	//cout << "a的长度   "<<sizeof(a) << endl;
-	char *filename = "./data.txt";
-	bool writeflag = false;
+	char *filename = "./data.txt";//name of file(文件名称地址)
+	bool writeflag = false;//是否写入数据标志位
 	if (Write_Into_Txt(filename, writeflag) == 0)
 	{
 		return -1;
@@ -98,9 +102,12 @@ int main()
 		{ 1.0f, 13.0f, 17.0f },
 		{ 2.0f, 14.0f, 18.0f },
 		{ 3.0f, 15.0f, 19.0f } };
-	float *basecoor = &basecoor_temp[0][0];
+	for (int h = 0; h < basestationnum; h++)
+		for (int l = 0; l < dimension;l++)
+			datatxt.basestation_coor[h][l] = basecoor_temp[h][l];
+	//cout << datatxt.basestation_coor[2][0] << " ceshi30" << endl;
 	datatxt.Set_Measure_Data(distanceme);
-	datatxt.Set_Basestation_Coor(basecoor);
+	//datatxt.Set_Basestation_Coor(basecoor);
 	float tagetcoor = 0.0f;
 #ifdef debug
 	datatxt.Read_1dTo2d(basecoor, 3, 2, tagetcoor,dimension);//prevent exceeding the array size
@@ -159,7 +166,7 @@ int main()
 	cout << "minmin" << minmin(12.0f, 14.0f, 13.0f, 8.0f) << endl;
 #endif // debug
 	Perfect_planes(row, column, datatxt.planes);
-//#ifdef debug
+#ifdef debug
 	for (int i = 0; i < column; ++i)
 	{
 		for (int j = 0; j < row; ++j)
@@ -168,14 +175,97 @@ int main()
 		}
 		cout << endl;
 	}
-
+#endif // debug
+	//load_flp^|
+	//建立测试点程序
+	//float *temp;
+	float xmin = 0.0f, xmax = 0.0f, ymin = 0.0f, ymax = 0.0f, zmin = 0.0f, zmax = 0.0f;
+	int lineofx[3] = { 1, 4, 7 };
+	findborder(row,datatxt.planes,lineofx, xmin, xmax);
+	//cout << "xmin " << xmin << endl;
+	//cout << "xmax " << xmax << endl;
+	int lineofy[3] = { 2, 5, 8 };
+	findborder(row, datatxt.planes, lineofy, ymin, ymax);
+	int lineofz[3] = { 3, 6, 9 };
+	findborder(row, datatxt.planes, lineofz, zmin, zmax);
 	
-//#endif // debug
-	system("pause");
+	int nb_pts = 100;
+	float *vectx = new float[nb_pts];
+	Set_vect(vectx, nb_pts, xmin, xmax);
+	//for (int i = 0; i < nb_pts; i++)
+	//	cout << vectx[i] << endl;
+	float *vecty = new float[nb_pts];
+	Set_vect(vecty, nb_pts, ymin, ymax);
+	float t_FlatH = (zmax - zmin) / 2;
+
+	float **meshgrid = new float *[dimension+1];
+	for (int len = 0; len < (dimension+1); len++)
+		meshgrid[len] = new float[nb_pts*nb_pts];
+	for (int xnum = 0; xnum < nb_pts; xnum++)
+	{
+		for (int ynum = 0; ynum < nb_pts; ynum++)
+		{
+			meshgrid[0][100 * xnum + ynum] = vectx[xnum];
+			meshgrid[1][100 * xnum + ynum] = vecty[ynum];
+			meshgrid[2][100 * xnum + ynum] = t_FlatH;
+		}
+	}
+
+#ifdef debug
+	for (int i = 0; i < 201; i++)
+	{
+		cout << meshgrid[0][i] << " " << meshgrid[1][i] << " " << meshgrid[2][i] << endl;
+	}
+#endif
+	//setup three reflections
+	int nr = 3;//the times of reflection
+	int Nr = nb_pts*nb_pts;
+	float *rs_amp = new float[basestationnum*Nr];//total power Nt*Nr
+
+	Mfct_Ref(dimension, datatxt.planes, datatxt.basestation_coor, meshgrid, basestationnum, Nr, row, nr, rs_amp);//material//fc//flp_scale
+		//(getdimensions,datatxt.planes，**basecoor_temp0**meshgrid, basestationnum,nb_pts, row,     nr)
+
+
+
+
+	for (int len = 0; len < dimension; len++)
+		delete[] meshgrid[len];
+	delete[] meshgrid;
+	delete[] vectx;
+	delete[] vecty;
+	delete[] rs_amp;
+ 	system("pause");
 	return 0;
 	
 }
-
+void Set_vect(float * vect, int nb, float min4, float max4)
+{
+	float step = (max4 - min4) / (nb - 1);
+	vect[0] = min4;
+	vect[nb - 1] = max4;
+	for (int i = 1; i < nb - 1; i++)
+		vect[i] = min4 + step*i;
+	
+}
+void findborder(int maxmatrixl, float **planes, int *line, float & min3, float & max3)
+{
+	int elecut = maxmatrixl*dimension;
+	float *temp=new float[elecut];
+	int current = 0;
+	for (int j = 0; j < dimension; j++)
+	{
+		for (int i = 0; i < maxmatrixl; i++)
+		{
+			//cout << "line" << line[j];
+			temp[current] = planes[line[j]][i];
+			//cout << *temp << " " << endl;
+			current++;
+		}
+	}
+	min3 = *min_element(temp, temp + (elecut - 1));
+	max3 = *max_element(temp, temp + (elecut - 1));
+	delete[] temp;
+}
 float maxmax(float temp1, float temp2, float temp3, float temp4)
 {
 	if (temp1 < temp2)
@@ -243,18 +333,18 @@ void Perfect_planes(int maxmatrixl, int maxmatrixh,float **planes)
 			planes[14][i] = pli_norm_z;
 			planes[15][i] = distance_origin;
 
-			float xmax = maxmax(pli_x1, pli_x2, pli_x3, pli_x4);
-			float xmin = minmin(pli_x1, pli_x2, pli_x3, pli_x4);
-			float ymax = maxmax(pli_y1, pli_y2, pli_y3, pli_y4);
-			float ymin = minmin(pli_y1, pli_y2, pli_y3, pli_y4);
-			float zmax = maxmax(pli_z1, pli_z2, pli_z3, pli_z4);
-			float zmin = minmin(pli_z1, pli_z2, pli_z3, pli_z4);
-			planes[16][i] = xmin;
-			planes[17][i] = xmax;
-			planes[18][i] = ymin;
-			planes[19][i] = ymax;
-			planes[20][i] = zmin;
-			planes[21][i] = zmax;
+			float xmaxt = maxmax(pli_x1, pli_x2, pli_x3, pli_x4);
+			float xmint = minmin(pli_x1, pli_x2, pli_x3, pli_x4);
+			float ymaxt = maxmax(pli_y1, pli_y2, pli_y3, pli_y4);
+			float ymint = minmin(pli_y1, pli_y2, pli_y3, pli_y4);
+			float zmaxt = maxmax(pli_z1, pli_z2, pli_z3, pli_z4);
+			float zmint = minmin(pli_z1, pli_z2, pli_z3, pli_z4);
+			planes[16][i] = xmint;
+			planes[17][i] = xmaxt;
+			planes[18][i] = ymint;
+			planes[19][i] = ymaxt;
+			planes[20][i] = zmint;
+			planes[21][i] = zmaxt;
 
 		} 
 		else if (maxmatrixh==2)

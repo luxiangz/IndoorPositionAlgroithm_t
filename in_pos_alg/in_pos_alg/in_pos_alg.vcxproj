@@ -120,6 +120,7 @@
     <ClCompile Include="datawritein.cpp" />
     <ClCompile Include="file_operation.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="total_reflection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt" />
@@ -127,6 +128,7 @@
   <ItemGroup>
     <ClInclude Include="datawritein.h" />
     <ClInclude Include="file_operation.h" />
+    <ClInclude Include="total_reflection.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

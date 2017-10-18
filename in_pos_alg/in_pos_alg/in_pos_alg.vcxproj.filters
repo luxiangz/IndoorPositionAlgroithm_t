@@ -24,6 +24,9 @@
     <ClCompile Include="datawritein.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="total_reflection.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt" />
@@ -33,6 +36,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="datawritein.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="total_reflection.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
